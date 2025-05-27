@@ -79,15 +79,15 @@ test('validateSubject', function (t) {
   })
 
   t.test('should reject invalid subject values', function (t) {
-    t.exception(() => vapid.validateSubject(), 'should throw when subject is undefined')
-    t.exception(() => vapid.validateSubject(''), 'should throw when subject is empty')
-    t.exception(() => vapid.validateSubject(123), 'should throw when subject is not a string')
-    t.exception(() => vapid.validateSubject('invalid-url'), 'should throw when subject is not a URL')
-    t.exception(() => vapid.validateSubject('http://example.com'), 'should throw when subject is not https or mailto')
+    t.exception(() => vapid.validateSubject(), /ERR_VAPID_SUBJECT_MISSING/, 'should throw when subject is undefined')
+    t.exception(() => vapid.validateSubject(''), /ERR_VAPID_SUBJECT_MISSING/, 'should throw when subject is empty')
+    t.exception(() => vapid.validateSubject(123), /ERR_VAPID_SUBJECT_INVALID/, 'should throw when subject is not a string')
+    t.exception(() => vapid.validateSubject('invalid-url'), /ERR_VAPID_SUBJECT_INVALID_URL/, 'should throw when subject is not a URL')
+    t.exception(() => vapid.validateSubject('http://example.com'), /ERR_VAPID_SUBJECT_PROTOCOL_INVALID/, 'should throw when subject is not https or mailto')
 
     // Verify that localhost URLs log a warning (but don't throw)
     const consoleWarnStub = sinon.stub(console, 'warn')
-    vapid.validateSubject('https://localhost/push')
+    vapid.validateSubject('https://localhost/push', console)
     t.ok(consoleWarnStub.calledOnce, 'should warn about localhost')
     consoleWarnStub.restore()
   })
@@ -105,13 +105,13 @@ test('validatePublicKey', function (t) {
   })
 
   t.test('should reject invalid public key', function (t) {
-    t.exception(() => vapid.validatePublicKey(), 'should throw when key is undefined')
-    t.exception(() => vapid.validatePublicKey(''), 'should throw when key is empty')
-    t.exception(() => vapid.validatePublicKey(123), 'should throw when key is not a string')
-    t.exception(() => vapid.validatePublicKey('invalid=key'), 'should throw when key is not base64url')
+    t.exception(() => vapid.validatePublicKey(), /ERR_VAPID_PUBLIC_KEY_MISSING/, 'should throw when key is undefined')
+    t.exception(() => vapid.validatePublicKey(''), /ERR_VAPID_PUBLIC_KEY_MISSING/, 'should throw when key is empty')
+    t.exception(() => vapid.validatePublicKey(123), /ERR_VAPID_PUBLIC_KEY_INVALID/, 'should throw when key is not a string')
+    t.exception(() => vapid.validatePublicKey('invalid=key'), /ERR_VAPID_PUBLIC_KEY_INVALID_FORMAT/, 'should throw when key is not base64url')
 
     // Key with incorrect length
-    t.exception(() => vapid.validatePublicKey('tooshort'), 'should throw when key is too short')
+    t.exception(() => vapid.validatePublicKey('tooshort'), /ERR_VAPID_PUBLIC_KEY_INVALID_LENGTH/, 'should throw when key is too short')
   })
 })
 
@@ -127,13 +127,13 @@ test('validatePrivateKey', function (t) {
   })
 
   t.test('should reject invalid private key', function (t) {
-    t.exception(() => vapid.validatePrivateKey(), 'should throw when key is undefined')
-    t.exception(() => vapid.validatePrivateKey(''), 'should throw when key is empty')
-    t.exception(() => vapid.validatePrivateKey(123), 'should throw when key is not a string')
-    t.exception(() => vapid.validatePrivateKey('invalid=key'), 'should throw when key is not base64url')
+    t.exception(() => vapid.validatePrivateKey(), /ERR_VAPID_PRIVATE_KEY_MISSING/, 'should throw when key is undefined')
+    t.exception(() => vapid.validatePrivateKey(''), /ERR_VAPID_PRIVATE_KEY_MISSING/, 'should throw when key is empty')
+    t.exception(() => vapid.validatePrivateKey(123), /ERR_VAPID_PRIVATE_KEY_INVALID/, 'should throw when key is not a string')
+    t.exception(() => vapid.validatePrivateKey('invalid=key'), /ERR_VAPID_PRIVATE_KEY_INVALID_FORMAT/, 'should throw when key is not base64url')
 
     // Key with incorrect length
-    t.exception(() => vapid.validatePrivateKey('tooshort'), 'should throw when key is too short')
+    t.exception(() => vapid.validatePrivateKey('tooshort'), /ERR_VAPID_PRIVATE_KEY_INVALID_LENGTH/, 'should throw when key is too short')
   })
 })
 
@@ -161,12 +161,12 @@ test('validateExpiration', function (t) {
   })
 
   t.test('should reject invalid expiration', function (t) {
-    t.exception(() => vapid.validateExpiration('not-a-number'), 'should throw when expiration is not a number')
-    t.exception(() => vapid.validateExpiration(3.14), 'should throw when expiration is not an integer')
-    t.exception(() => vapid.validateExpiration(-1), 'should throw when expiration is negative')
+    t.exception(() => vapid.validateExpiration('not-a-number'), /ERR_VAPID_EXPIRATION_INVALID_TYPE/, 'should throw when expiration is not a number')
+    t.exception(() => vapid.validateExpiration(3.14), /ERR_VAPID_EXPIRATION_INVALID_TYPE/, 'should throw when expiration is not an integer')
+    t.exception(() => vapid.validateExpiration(-1), /ERR_VAPID_EXPIRATION_NEGATIVE/, 'should throw when expiration is negative')
 
     const now = Math.floor(Date.now() / 1000)
-    t.exception(() => vapid.validateExpiration(now + 25 * 3600), 'should throw when expiration is > 24 hours')
+    t.exception(() => vapid.validateExpiration(now + 25 * 3600), /ERR_VAPID_EXPIRATION_TOO_LONG/, 'should throw when expiration is > 24 hours')
   })
 })
 
@@ -228,6 +228,7 @@ test('getVapidHeaders', function (t) {
 
     t.exception(
       () => vapid.getVapidHeaders(audience, subject, publicKey, privateKey, contentEncoding),
+      /ERR_VAPID_CONTENT_ENCODING_UNSUPPORTED/,
       'should throw for invalid encoding'
     )
   })
@@ -239,26 +240,31 @@ test('getVapidHeaders', function (t) {
 
     t.exception(
       () => vapid.getVapidHeaders(null, 'mailto:test@example.com', publicKey, privateKey, contentEncoding),
+      /ERR_VAPID_AUDIENCE_MISSING/,
       'should throw for null audience'
     )
 
     t.exception(
       () => vapid.getVapidHeaders('invalid-url', 'mailto:test@example.com', publicKey, privateKey, contentEncoding),
+      /ERR_VAPID_AUDIENCE_INVALID_URL/,
       'should throw for invalid audience'
     )
 
     t.exception(
       () => vapid.getVapidHeaders('https://example.com', null, publicKey, privateKey, contentEncoding),
+      /ERR_VAPID_SUBJECT_MISSING/,
       'should throw for null subject'
     )
 
     t.exception(
       () => vapid.getVapidHeaders('https://example.com', 'mailto:test@example.com', null, privateKey, contentEncoding),
+      /ERR_VAPID_PUBLIC_KEY_MISSING/,
       'should throw for null public key'
     )
 
     t.exception(
       () => vapid.getVapidHeaders('https://example.com', 'mailto:test@example.com', publicKey, null, contentEncoding),
+      /ERR_VAPID_PRIVATE_KEY_MISSING/,
       'should throw for null private key'
     )
   })

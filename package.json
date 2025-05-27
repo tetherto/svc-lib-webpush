@@ -31,7 +31,8 @@
     "jws": "4.0.0",
     "http_ece": "1.2.0",
     "bfx-facs-http": "git+https://github.com/bitfinexcom/bfx-facs-http.git",
-    "lib-js-util-promise": "git+https://github.com/bitfinexcom/lib-js-util-promise.git"
+    "lib-js-util-promise": "git+https://github.com/bitfinexcom/lib-js-util-promise.git",
+    "ready-resource": "1.1.2"
   },
   "devDependencies": {
     "brittle": "^3.10.1",

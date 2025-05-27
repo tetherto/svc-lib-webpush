@@ -14,38 +14,38 @@ test('encrypt', function (t) {
 
   t.test('should validate userPublicKey', function (t) {
     t.exception(() => encrypt(null, validUserAuth, validPayload, contentEncoding),
-      'should throw for null userPublicKey')
+      /ERR_ENCRYPTION_USER_PUBLIC_KEY_MISSING/, 'should throw for null userPublicKey')
 
     t.exception(() => encrypt(undefined, validUserAuth, validPayload, contentEncoding),
-      'should throw for undefined userPublicKey')
+      /ERR_ENCRYPTION_USER_PUBLIC_KEY_MISSING/, 'should throw for undefined userPublicKey')
 
     t.exception(() => encrypt(123, validUserAuth, validPayload, contentEncoding),
-      'should throw when userPublicKey is not a string')
+      /ERR_ENCRYPTION_USER_PUBLIC_KEY_INVALID/, 'should throw when userPublicKey is not a string')
 
     t.exception(() => encrypt('too-short', validUserAuth, validPayload, contentEncoding),
-      'should throw when userPublicKey decodes to wrong length')
+      /ERR_ENCRYPTION_USER_PUBLIC_KEY_INVALID_LENGTH/, 'should throw when userPublicKey decodes to wrong length')
   })
 
   t.test('should validate userAuth', function (t) {
     t.exception(() => encrypt(validUserPublicKey, null, validPayload, contentEncoding),
-      'should throw for null userAuth')
+      /ERR_ENCRYPTION_USER_AUTH_MISSING/, 'should throw for null userAuth')
 
     t.exception(() => encrypt(validUserPublicKey, undefined, validPayload, contentEncoding),
-      'should throw for undefined userAuth')
+      /ERR_ENCRYPTION_USER_AUTH_MISSING/, 'should throw for undefined userAuth')
 
     t.exception(() => encrypt(validUserPublicKey, 123, validPayload, contentEncoding),
-      'should throw when userAuth is not a string')
+      /ERR_ENCRYPTION_USER_AUTH_INVALID/, 'should throw when userAuth is not a string')
 
     t.exception(() => encrypt(validUserPublicKey, 'too-short', validPayload, contentEncoding),
-      'should throw when userAuth decodes to wrong length')
+      /ERR_ENCRYPTION_USER_AUTH_INVALID_LENGTH/, 'should throw when userAuth decodes to wrong length')
   })
 
   t.test('should validate payload', function (t) {
     t.exception(() => encrypt(validUserPublicKey, validUserAuth, undefined, contentEncoding),
-      'should throw for undefined payload')
+      /ERR_ENCRYPTION_PAYLOAD_INVALID/, 'should throw for undefined payload')
 
     t.exception(() => encrypt(validUserPublicKey, validUserAuth, 123, contentEncoding),
-      'should throw when payload is not a string or buffer')
+      /ERR_ENCRYPTION_PAYLOAD_INVALID/, 'should throw when payload is not a string or buffer')
   })
 
   t.test('should encrypt and return correct values', function (t) {

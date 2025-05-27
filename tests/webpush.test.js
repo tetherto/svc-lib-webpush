@@ -9,12 +9,12 @@ test('WebPushService - constructor', function (t) {
     t.exception(() => {
       // eslint-disable-next-line no-new
       new WebPushService({})
-    }, /ERR_INVALID_VAPID_CONFIG/, 'should throw when VAPID config is missing')
+    }, /ERR_VAPID_CONFIG_MISSING/, 'should throw when VAPID config is missing')
 
     t.exception(() => {
       // eslint-disable-next-line no-new
       new WebPushService({ vapid: {} })
-    }, /ERR_INVALID_VAPID_CONFIG/, 'should throw when VAPID details are missing')
+    }, /ERR_VAPID_CONFIG_MISSING/, 'should throw when VAPID details are missing')
 
     t.exception(() => {
       // eslint-disable-next-line no-new
@@ -25,7 +25,7 @@ test('WebPushService - constructor', function (t) {
           // No privateKey
         }
       })
-    }, /ERR_INVALID_VAPID_CONFIG/, 'should throw when VAPID private key is missing')
+    }, /ERR_VAPID_CONFIG_MISSING/, 'should throw when VAPID private key is missing')
   })
 
   t.test('should initialize with valid VAPID config', function (t) {
@@ -41,6 +41,7 @@ test('WebPushService - constructor', function (t) {
     t.is(service.vapid.publicKey, 'publicKey', 'should store VAPID public key')
     t.is(service.vapid.privateKey, 'privateKey', 'should store VAPID private key')
     t.is(service.defaultTTL, 4 * 60 * 60, 'should set default TTL to 4 hours')
+    t.ok(service.httpFac, 'should initialize HTTP facility')
   })
 
   t.test('should accept custom logger', function (t) {
@@ -62,6 +63,68 @@ test('WebPushService - constructor', function (t) {
 
     service.logger.info('test message')
     t.ok(customLogger.info.calledWith('test message'), 'should use custom logger methods')
+  })
+})
+
+test('WebPushService - lifecycle methods', async function (t) {
+  t.test('should properly initialize with ready()', async function (t) {
+    const service = new WebPushService({
+      vapid: {
+        subject: 'mailto:test@example.com',
+        publicKey: 'publicKey',
+        privateKey: 'privateKey'
+      }
+    })
+
+    // Mock HTTP facility methods
+    service.httpFac.start = sinon.spy()
+    service.httpFac.stop = sinon.spy()
+
+    await service.ready()
+    t.ok(service.httpFac.start.calledOnce, 'should start HTTP facility')
+
+    await service.close()
+    t.ok(service.httpFac.stop.calledOnce, 'should stop HTTP facility')
+  })
+
+  t.test('should handle errors in _open', async function (t) {
+    const service = new WebPushService({
+      vapid: {
+        subject: 'mailto:test@example.com',
+        publicKey: 'publicKey',
+        privateKey: 'privateKey'
+      }
+    })
+
+    // Make HTTP facility start throw an error
+    service.httpFac.start = sinon.stub().throws(new Error('Failed to start HTTP facility'))
+
+    await t.exception(
+      service.ready(),
+      /Failed to start HTTP facility/,
+      'should propagate HTTP facility start errors'
+    )
+  })
+
+  t.test('should handle errors in _close', async function (t) {
+    const service = new WebPushService({
+      vapid: {
+        subject: 'mailto:test@example.com',
+        publicKey: 'publicKey',
+        privateKey: 'privateKey'
+      }
+    })
+
+    // Make HTTP facility stop throw an error
+    service.httpFac.stop = sinon.stub().throws(new Error('Failed to stop HTTP facility'))
+
+    await service.ready() // Ensure service is ready first
+
+    await t.exception(
+      service.close(),
+      /Failed to stop HTTP facility/,
+      'should propagate HTTP facility stop errors'
+    )
   })
 })
 
@@ -117,6 +180,9 @@ test('WebPushService - sendNotification', async function (t) {
       }
     })
 
+    // Mock ready() to prevent actual initialization
+    sinon.stub(service, 'ready').resolves()
+
     await t.exception(() => service.sendNotification(null, 'test message'),
       /ERR_INVALID_SUBSCRIPTION/, 'should throw when subscription is null')
 
@@ -125,6 +191,8 @@ test('WebPushService - sendNotification', async function (t) {
 
     await t.exception(() => service.sendNotification({ endpoint: 'endpoint' }, 'test message'),
       /ERR_INVALID_SUBSCRIPTION_FORMAT/, 'should throw when subscription is malformed')
+
+    service.ready.restore()
   })
 
   await t.test('should correctly prepare and send push notification', async function (t) {
@@ -149,14 +217,19 @@ test('WebPushService - sendNotification', async function (t) {
       }
     })
 
+    // Mock ready() to prevent actual initialization
+    sinon.stub(service, 'ready').resolves()
+
     // Mock the HTTP request function
     const sendPushRequestStub = sinon.stub(service, '_sendPushRequest').resolves(mockResponse)
+    await service.ready()
 
     const result = await service.sendNotification(
       validSubscription,
       { title: 'Test', body: 'This is a test message' }
     )
 
+    t.ok(service.ready.calledOnce, 'should call ready() before sending notification')
     t.ok(sendPushRequestStub.calledOnce, 'should call _sendPushRequest')
     t.is(result.success, true, 'should return success flag')
     t.is(result.statusCode, 201, 'should return status code')
@@ -171,6 +244,7 @@ test('WebPushService - sendNotification', async function (t) {
     t.is(requestArgsHeaders.TTL, 4 * 60 * 60, 'should set default TTL')
     t.is(requestArgsHeaders.Urgency, 'normal', 'should set default urgency')
 
+    service.ready.restore()
     sendPushRequestStub.restore()
   })
 
@@ -191,6 +265,9 @@ test('WebPushService - sendNotification', async function (t) {
       }
     })
 
+    // Mock ready() to prevent actual initialization
+    sinon.stub(service, 'ready').resolves()
+
     // Mock the HTTP request function
     const sendPushRequestStub = sinon.stub(service, '_sendPushRequest').resolves({
       statusCode: 201,
@@ -208,8 +285,49 @@ test('WebPushService - sendNotification', async function (t) {
     t.is(requestArgsHeaders.TTL, customTTL, 'should use custom TTL')
     t.is(requestArgsHeaders.Urgency, 'high', 'should use custom urgency')
 
+    service.ready.restore()
     sendPushRequestStub.restore()
   })
+})
+
+test('WebPushService - end-to-end workflow', async function (t) {
+  const service = new WebPushService({
+    vapid: {
+      subject: 'mailto:test@example.com',
+      publicKey: 'BBhRKWg5BokT9ph-AIcTaZHeysmA1pyVDp6nTCfnRJfvw6Optuw6_-p7uwmJUhcaTPvDtez-oSFvJ5VMRi8RRYM',
+      privateKey: 'gOR77C2oeWh7O6ZPODGsUbHm3qt6xpHfpbJMu7BJmQk'
+    }
+  })
+
+  // Mock internal methods
+  service._open = sinon.stub().resolves()
+  service._close = sinon.stub().resolves()
+  service._sendPushRequest = sinon.stub().resolves({
+    statusCode: 201,
+    body: Buffer.alloc(0)
+  })
+
+  const validSubscription = {
+    endpoint: 'https://fcm.googleapis.com/fcm/send/123',
+    keys: {
+      p256dh: 'BJNGHXhPcYNbbdkdLp2Y7fZPcKV361Uu5R7iTD_WinsJbce6We-LRaz6Zkqb6ry_fBDdJscGolwRsagPsKvtbbM',
+      auth: 'ySipQj7pD7t4TZOnan4Vow'
+    }
+  }
+
+  // Test complete workflow
+  await service.ready()
+  t.ok(service._open.calledOnce, 'should call _open when ready')
+
+  const result = await service.sendNotification(
+    validSubscription,
+    'Test message'
+  )
+
+  t.is(result.success, true, 'should successfully send notification')
+
+  await service.close()
+  t.ok(service._close.calledOnce, 'should call _close when closed')
 })
 
 test('WebPushService - static generateVapidKeys', function (t) {

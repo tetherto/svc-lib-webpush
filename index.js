@@ -1,12 +1,13 @@
 'use strict'
 
 const HttpFacility = require('bfx-facs-http')
+const ReadyResource = require('ready-resource')
 const { encrypt } = require('./lib/encryption')
 const { promiseFlat } = require('lib-js-util-promise')
 const { CONTENT_ENCODING, URGENCY } = require('./lib/constants')
 const { getVapidHeaders, generateVAPIDKeys } = require('./lib/vapid')
 
-class WebPushService {
+class WebPushService extends ReadyResource {
   /**
    * Create a new WebPushService instance
    * @param {Object} opts - Configuration options
@@ -17,8 +18,10 @@ class WebPushService {
    * @param {Object} [opts.logger=null] - Logger instance with info and error methods
    */
   constructor (opts = {}) {
+    super()
+
     if (!opts.vapid || !opts.vapid.subject || !opts.vapid.publicKey || !opts.vapid.privateKey) {
-      throw new Error('ERR_INVALID_VAPID_CONFIG')
+      throw new Error('ERR_VAPID_CONFIG_MISSING')
     }
 
     this.vapid = opts.vapid
@@ -28,12 +31,18 @@ class WebPushService {
     }
 
     this.defaultTTL = 4 * 60 * 60
-
-    // Initialize HTTP facility
     this.httpFac = new HttpFacility(this, {}, {})
+  }
 
+  async _open () {
     // Start the HTTP facility
-    this.httpFac.start()
+    await this.httpFac.start()
+  }
+
+  async _close () {
+    if (this.httpFac) {
+      await this.httpFac.stop()
+    }
   }
 
   /**
@@ -66,7 +75,9 @@ class WebPushService {
       this.vapid.subject,
       this.vapid.publicKey,
       this.vapid.privateKey,
-      contentEncoding
+      contentEncoding,
+      null,
+      this.logger
     )
 
     const urgency = options.urgency || URGENCY.NORMAL
