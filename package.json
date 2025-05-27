@@ -1,0 +1,52 @@
+{
+  "name": "svc-lib-webpush",
+  "version": "1.0.0",
+  "description": "Service library for web push notifications using Push API",
+  "main": "index.js",
+  "scripts": {
+    "lint": "standard",
+    "lint:fix": "standard --fix",
+    "test": "brittle tests/{,**/}*.test.js",
+    "test:coverage": "brittle --coverage tests/{,**/}*.test.js",
+    "posttest": "npm run lint"
+  },
+  "keywords": [
+    "svc",
+    "lib",
+    "webpush"
+  ],
+  "author": {
+    "name": "prdn",
+    "email": "paolo@bitfinex.com"
+  },
+  "maintainers": [
+    {
+      "name": "prdn",
+      "email": "paolo@bitfinex.com"
+    }
+  ],
+  "license": "Apache-2.0",
+  "dependencies": {
+    "asn1.js": "5.3.0",
+    "jws": "4.0.0",
+    "http_ece": "1.2.0",
+    "bfx-facs-http": "git+https://github.com/bitfinexcom/bfx-facs-http.git",
+    "lib-js-util-promise": "git+https://github.com/bitfinexcom/lib-js-util-promise.git"
+  },
+  "devDependencies": {
+    "brittle": "^3.10.1",
+    "sinon": "^17.0.0",
+    "standard": "^17.1.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tetherto/svc-lib-webpush.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tetherto/svc-lib-webpush/issues"
+  },
+  "homepage": "https://github.com/tetherto/svc-lib-webpush#readme"
+}
