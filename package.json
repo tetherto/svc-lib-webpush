@@ -49,5 +49,9 @@
   "bugs": {
     "url": "https://github.com/tetherto/svc-lib-webpush/issues"
   },
-  "homepage": "https://github.com/tetherto/svc-lib-webpush#readme"
+  "homepage": "https://github.com/tetherto/svc-lib-webpush#readme",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
 }
