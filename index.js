@@ -1,9 +1,9 @@
 'use strict'
 
-const HttpFacility = require('bfx-facs-http')
+const HttpFacility = require('@bitfinex/bfx-facs-http')
 const ReadyResource = require('ready-resource')
 const { encrypt } = require('./lib/encryption')
-const { promiseFlat } = require('lib-js-util-promise')
+const { promiseFlat } = require('@bitfinex/lib-js-util-promise')
 const { CONTENT_ENCODING, URGENCY } = require('./lib/constants')
 const { getVapidHeaders, generateVAPIDKeys } = require('./lib/vapid')
 
