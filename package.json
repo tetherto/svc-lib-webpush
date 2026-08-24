@@ -1,6 +1,6 @@
 {
   "name": "@tetherto/svc-lib-webpush",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Service library for web push notifications using Push API",
   "main": "index.js",
   "scripts": {
