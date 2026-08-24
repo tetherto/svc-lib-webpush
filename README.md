@@ -5,7 +5,7 @@ A custom service library for web push notifications. Utilizes the [web push api]
 ## Installation
 
 ```bash
-npm install git+https://github.com/tetherto/svc-lib-webpush.git
+npm install @tetherto/svc-lib-webpush
 ```
 
 ## Features
@@ -25,7 +25,7 @@ npm install git+https://github.com/tetherto/svc-lib-webpush.git
 ### Basic Usage
 
 ```javascript
-const WebPushService = require('svc-lib-webpush')
+const WebPushService = require('@tetherto/svc-lib-webpush')
 
 // Create service instance with VAPID credentials
 const pushService = new WebPushService({
@@ -67,7 +67,7 @@ try {
 If you need to generate new VAPID keys:
 
 ```javascript
-const WebPushService = require('svc-lib-webpush')
+const WebPushService = require('@tetherto/svc-lib-webpush')
 
 // Generate new VAPID keys using static method
 const keys = WebPushService.generateVapidKeys()
